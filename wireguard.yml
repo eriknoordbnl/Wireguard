@@ -1,0 +1,39 @@
+---
+- name: setup vpn server
+  hosts: TEST
+  become: yes
+  vars:
+    server_privkey: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          37626162623764313438653836373862353934626435306235613162383835396461663864333166
+          6561356461373165346464613032326566373864613466380a613730616536646333356131633430
+          39633132643836353166666234663666386139663634613966383866363863663232633364636261
+          6165326564623036300a396335323763366431303762653734613163356665386130366263363461
+          31653030363765343561383265353266356563616537306238663830326462623335303933666136
+          6364383662353136336234343462363666663332316238373565
+    server_pubkey: L5ABG32GxMesArvbnq8nJwfVrpQ5MgrUbMd5y6JHVC0=
+  tasks: 
+  - name: install wireguard package
+    apt:
+      name: wireguard
+      state: present
+      update_cache: yes
+  - name: create server config wireguard
+    template:
+      dest: /etc/wireguard/wg0.conf
+      src: server_wg0.conf.j2
+      owner: root
+      group: root
+      mode: '0600'
+  - name: enable and persist ip forwarding
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: "1"
+      state: present
+      sysctl_set: yes
+      reload: yes
+  - name: start wireguard and enable on boot
+    systemd:
+      name: wg-quick@wg0
+      enabled: yes
+      state: started
