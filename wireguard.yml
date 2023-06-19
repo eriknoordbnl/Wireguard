@@ -1,39 +1,91 @@
 ---
-- name: setup vpn server
-  hosts: TEST
+- name: Setup vpn client
+  hosts: DOMO
+  connection: local
   become: yes
   vars:
-    server_privkey: !vault |
-          $ANSIBLE_VAULT;1.1;AES256
-          37626162623764313438653836373862353934626435306235613162383835396461663864333166
-          6561356461373165346464613032326566373864613466380a613730616536646333356131633430
-          39633132643836353166666234663666386139663634613966383866363863663232633364636261
-          6165326564623036300a396335323763366431303762653734613163356665386130366263363461
-          31653030363765343561383265353266356563616537306238663830326462623335303933666136
-          6364383662353136336234343462363666663332316238373565
-    server_pubkey: L5ABG32GxMesArvbnq8nJwfVrpQ5MgrUbMd5y6JHVC0=
+    # Use system python so apt apckage is available
+    ansible_python_interpreter: "/usr/bin/env python"
+  tasks:
+#  - debug: var=hostvars['localhost']
+  - name: Install wireguard package
+    apt: 
+     name: wireguard
+     state: present
+     update_cache: yes
+
+  - name: Generate private key
+    shell:
+      cmd: umask 077 && wg genkey | tee privatekey | wg pubkey > publickey
+      chdir: /etc/wireguard
+      creates: /etc/wireguard/publickey
+
+  - name: Get public key
+    command: cat /etc/wireguard/publickey
+    register: publickey_contents
+    changed_when: False
+
+  - name: Just checking publickey
+    debug:
+      msg: "{{ publickey_contents }}"
+  - name: Save public key as fact
+    set_fact:
+      pubkey: "{{ publickey_contents.stdout }}"
+
+  - name: Create wireguard client config
+    template:
+      dest: /etc/wireguard/wg0.conf
+      src: client_wg0.conf.j2
+      owner: root
+      group: root
+      mode: '0600'   
+#    notify: restart wireguard
+
+  handlers:
+  - name : Restart wireguard
+    shell: wg-quick down wg0; wg-quick up wg0
+    args:
+      executable: /bin/bash
+
+- name: Setup vpn server
+  hosts: TEST
+  become: yes
   tasks: 
-  - name: install wireguard package
+  - name: Install wireguard package
     apt:
       name: wireguard
       state: present
       update_cache: yes
-  - name: create server config wireguard
+  - name: Create server config wireguard
     template:
       dest: /etc/wireguard/wg0.conf
       src: server_wg0.conf.j2
       owner: root
       group: root
       mode: '0600'
-  - name: enable and persist ip forwarding
+    notify: Reload wireguard config
+  - name: Enable and persist ip forwarding
     sysctl:
       name: net.ipv4.ip_forward
       value: "1"
       state: present
       sysctl_set: yes
       reload: yes
-  - name: start wireguard and enable on boot
+  - name: Start wireguard and enable on boot
     systemd:
       name: wg-quick@wg0
       enabled: yes
       state: started
+  handlers:
+    - name : Reload wireguard config
+      shell: wg syncconf wg0 <(wg-quick strip wg0)
+      args:
+        executable: /bin/bash
+
+- name: Start VPN client 
+  hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+  - name : Start vpn service
+    command: wg-quick up wg0 
