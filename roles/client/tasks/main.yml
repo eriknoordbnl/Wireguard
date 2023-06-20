@@ -1,0 +1,40 @@
+---
+#- name: Create Wireguard Directory with permission
+#  file:
+#    path: "/etc/wireguard"
+#    mode: "0755"
+#    state: directory
+
+- name: Install wireguard package
+  apt: 
+    name: wireguard
+    state: present
+    update_cache: yes
+
+- name: Generate private key
+  shell:
+    cmd: umask 077 && wg genkey | tee privatekey | wg pubkey > publickey
+    chdir: /etc/wireguard
+    creates: /etc/wireguard/publickey
+
+- name: Get public key
+  command: cat /etc/wireguard/publickey
+  register: publickey_contents
+  changed_when: False
+
+- name: Just checking publickey
+  debug:
+    msg: "{{ publickey_contents }}"
+- name: Save public key as fact
+  set_fact:
+    pubkey: "{{ publickey_contents.stdout }}"
+
+- name: Create wireguard client config
+  template:
+    dest: /etc/wireguard/wg0.conf
+    src: client_wg0.conf.j2
+    owner: root
+    group: root
+    mode: '0600'   
+#    notify: restart wireguard
+
