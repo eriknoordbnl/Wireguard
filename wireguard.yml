@@ -17,11 +17,11 @@
   roles:
     - client
 
-#- hosts: TEST
-#  become: true
+- hosts: TEST
+  become: true
 #  connection: local
-#  roles:
-#    - server
+  roles:
+    - server
 
 
 #  vars:
@@ -32,7 +32,7 @@
 
 - name: Start VPN client 
   hosts: DOMO
-  connection: local
+#  connection: local
   become: yes
   tasks:
   - name : Start vpn service
