@@ -8,3 +8,8 @@ server_privkey: !vault |
           31653030363765343561383265353266356563616537306238663830326462623335303933666136
           6364383662353136336234343462363666663332316238373565
 server_pubkey: L5ABG32GxMesArvbnq8nJwfVrpQ5MgrUbMd5y6JHVC0=
+ansible_user: pi_user
+ansible_ssh_private_key_file: ~/.ssh/Linux_key
+ansible_ssh_port: 22
+ansible_wireguard_port: 50499
+ansible_python_interpreter: "/usr/bin/env python"

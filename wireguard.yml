@@ -1,5 +1,4 @@
 ---
-
 - hosts: all
   become: true
   pre_tasks:
@@ -13,27 +12,22 @@
 
 - hosts: DOMO
   become: true
-#  connection: local
   roles:
     - client
 
 - hosts: TEST
   become: true
-#  connection: local
   roles:
     - server
 
 
-#  vars:
-    # Use system python so apt apckage is available
-#    ansible_python_interpreter: "/usr/bin/env python"
 #  tasks:
 #  - debug: var=hostvars['localhost']
 
 - name: Start VPN client 
   hosts: DOMO
-#  connection: local
   become: yes
   tasks:
   - name : Start vpn service
     command: wg-quick up wg0 
+    when: client_wireguard_config.changed

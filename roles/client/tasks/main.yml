@@ -1,10 +1,4 @@
 ---
-#- name: Create Wireguard Directory with permission
-#  file:
-#    path: "/etc/wireguard"
-#    mode: "0755"
-#    state: directory
-
 - name: Install wireguard package
   apt: 
     name: wireguard
@@ -25,6 +19,7 @@
 - name: Just checking publickey
   debug:
     msg: "{{ publickey_contents }}"
+
 - name: Save public key as fact
   set_fact:
     pubkey: "{{ publickey_contents.stdout }}"
@@ -36,5 +31,5 @@
     owner: root
     group: root
     mode: '0600'   
-#    notify: restart wireguard
-
+  notify: restart wireguard
+  register: client_wireguard_config

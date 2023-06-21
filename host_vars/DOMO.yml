@@ -1,0 +1,2 @@
+# DOMO specific variables
+wireguard_ip: '10.0.1.8'
